@@ -12,18 +12,21 @@ section = "START"
 project_number = ""
 project_name = ""
 store_number = ""
+purchase_order_count = 0
+
+VENDOR_NAME_COL = 0
+PURCHASE_ORDER_NUMBER_COL = 1
 
 print "Sheet name: " + sheet.name
 print "Sheet row count: " + str(sheet.nrows)
 print "Sheet col count: " + str(sheet.ncols)
-print "empty_cell.value: " + empty_cell.value
 
 # for row_index in range(sheet.nrows):
 #  for col_index in range(sheet.ncols):
 #   print cellname(row_index,col_index),'-',
 #   print sheet.cell(row_index,col_index).value
 
-company_tuple_list = []
+purchase_order_tuple_list = []
 
 # determines the current section of the spreadsheet
 def state_change(current_row):
@@ -34,6 +37,7 @@ def state_change(current_row):
     section = "WAREHOUSE_ORDERS"
   return section
 
+# iterate through each row of the spreadsheet
 for row_index in range(sheet.nrows):
 #  print sheet.row_slice(row_index,0)
   state_changed = state_change(sheet.row_slice(row_index,0)[0].value)
@@ -43,9 +47,10 @@ for row_index in range(sheet.nrows):
       project_name = sheet.row_slice(row_index,0)[4].value
       store_number = sheet.row_slice(row_index,0)[6].value
     elif section == "PURCHASE_ORDERS":  
-      company_tuple_list.append(sheet.row_slice(row_index,0))
+      if sheet.row_slice(row_index,0)[3].value is empty_cell.value:
+        purchase_order_tuple_list.append(sheet.row_slice(row_index,0)[PURCHASE_ORDER_NUMBER_COL].value,sheet.row_slice(row_index,0)[VENDOR_NAME_COL].value,sheet.row_slice(row_index,0)[1],[])
+      vendor_tuple_list.append(sheet.row_slice(row_index,0))
       print sheet.row_slice(row_index,0)[0] 
-      print section
     elif section == "WAREHOUSE_ORDERS":
       print "in warehouse section"
   else:
