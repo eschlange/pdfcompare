@@ -9,17 +9,15 @@ sheet = book.sheet_by_index(0)
 #   with the warehouse section
 section = "START"
 
+# Generic spreadsheet details
 project_number = ""
 project_name = ""
 store_number = ""
 purchase_order_count = 0
 
+# Column name static variables
 VENDOR_NAME_COL = 0
 PURCHASE_ORDER_NUMBER_COL = 1
-
-print "Sheet name: " + sheet.name
-print "Sheet row count: " + str(sheet.nrows)
-print "Sheet col count: " + str(sheet.ncols)
 
 purchase_order_tuple_list = []
 
@@ -31,6 +29,22 @@ def state_change(current_cell):
   elif current_cell == "Warehouse Orders":
     state = "WAREHOUSE_ORDERS"
   return state
+
+# print out a readable set of data for each purchase order and nested item
+def po_print(po_list):
+  for po_tuple in po_list:
+    print "PO #:         " + str(po_tuple[0])
+    print "Company Name: " + po_tuple[1]
+    print "Ship Date:    " + po_tuple[2].value
+    print
+    for item_details in po_tuple[3]:
+      print "    SKU Description: " + item_details[0]
+      print "    Design ID:       " + item_details[1]
+      print "    CSI Code:        " + item_details[2].value
+      print "    CSI Description: " + str(item_details[3])
+      print "    QTY Ordered:     " + str(item_details[4])
+      print "    QTY UOM:         " + item_details[5].value
+      print 
 
 # iterate through each row of the spreadsheet
 current_po_item_count = 0
@@ -63,9 +77,7 @@ for row_index in range(sheet.nrows):
     elif "WAREHOUSE_ORDERS" == section:
       print "in warehouse section"
 
-for po_tuple in purchase_order_tuple_list:
-  print po_tuple[0]
-  print "item count = " + str(po_tuple[3])
+po_print(purchase_order_tuple_list)
 
 print "Completed for Project " + project_name + ", # " + str(project_number) + ", Store # " + str(store_number)
 print "Purchase order count: " + str(purchase_order_count)
