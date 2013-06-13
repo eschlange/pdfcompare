@@ -21,39 +21,42 @@ print "Sheet name: " + sheet.name
 print "Sheet row count: " + str(sheet.nrows)
 print "Sheet col count: " + str(sheet.ncols)
 
-# for row_index in range(sheet.nrows):
-#  for col_index in range(sheet.ncols):
-#   print cellname(row_index,col_index),'-',
-#   print sheet.cell(row_index,col_index).value
-
 purchase_order_tuple_list = []
 
 # determines the current section of the spreadsheet
-def state_change(current_row):
+def state_change(current_cell):
   section = ""
-  if current_row == "Purchase Orders":
+  if current_cell == "Purchase Orders":
     section = "PURCHASE_ORDERS"
-  elif current_row == "Warehouse Orders":
+  elif current_cell == "Warehouse Orders":
     section = "WAREHOUSE_ORDERS"
   return section
 
 # iterate through each row of the spreadsheet
+current_po_item_count = 0
 for row_index in range(sheet.nrows):
 #  print sheet.row_slice(row_index,0)
   state_changed = state_change(sheet.row_slice(row_index,0)[0].value)
   if (not sheet.row_slice(row_index,0)[0].value is empty_cell.value) and ("" == state_changed):
-    if section == "START":
+    if "START" == section:
       project_number = sheet.row_slice(row_index,0)[2].value
       project_name = sheet.row_slice(row_index,0)[4].value
       store_number = sheet.row_slice(row_index,0)[6].value
-    elif section == "PURCHASE_ORDERS":  
+    elif "PURCHASE_ORDERS" == section:
+      # if the row constitutes a new PO
       if sheet.row_slice(row_index,0)[3].value is empty_cell.value:
-        purchase_order_tuple_list.append(sheet.row_slice(row_index,0)[PURCHASE_ORDER_NUMBER_COL].value,sheet.row_slice(row_index,0)[VENDOR_NAME_COL].value,sheet.row_slice(row_index,0)[1],[])
-      vendor_tuple_list.append(sheet.row_slice(row_index,0))
-      print sheet.row_slice(row_index,0)[0] 
-    elif section == "WAREHOUSE_ORDERS":
+        # if purchase order list is empty
+        if purchase_order_tuple_list:
+          purchase_order_count += 1
+        purchase_order_tuple_list.append((sheet.row_slice(row_index,0)[PURCHASE_ORDER_NUMBER_COL].value,sheet.row_slice(row_index,0)[VENDOR_NAME_COL].value,sheet.row_slice(row_index,0)[2],[]))
+      # else the row is the seperate items for a PO
+      else:
+        print "GOT HERE 2"
+        purchase_order_tuple_list[purchase_order_count][3].append((sheet.row_slice(row_index,0)[0].value,sheet.row_slice(row_index,0)[1].value,sheet.row_slice(row_index,0)[2],sheet.row_slice(row_index,0)[3].value,sheet.row_slice(row_index,0)[4].value,sheet.row_slice(row_index,0)[5])) 
+    elif "WAREHOUSE_ORDERS" == section:
       print "in warehouse section"
   else:
      section = state_changed
 
 print "Completed for Project " + project_name + ", # " + str(project_number) + ", Store # " + str(store_number)
+print "Purchase order count: " + str(purchase_order_count)
