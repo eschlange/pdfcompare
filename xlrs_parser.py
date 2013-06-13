@@ -98,8 +98,9 @@ for row_index in range(sheet.nrows):
       else: 
         warehouse_order_tuple_list[warehouse_order_count][1].append((sheet.row_slice(row_index,0)[0].value,sheet.row_slice(row_index,0)[1].value,sheet.row_slice(row_index,0)[2],sheet.row_slice(row_index,0)[3].value,sheet.row_slice(row_index,0)[4].value,sheet.row_slice(row_index,0)[5],sheet.row_slice(row_index,0)[6]))
 
+# Uncomment the following two lines to print out the stored PO and warehouse data
 # po_print(purchase_order_tuple_list)
-warehouse_print(warehouse_order_tuple_list)
+# warehouse_print(warehouse_order_tuple_list)
 
 print "Completed for Project [" + project_name + "], [# " + str(project_number) + "], Store #" + str(store_number)
 print "Purchase order count: " + str(purchase_order_count)
