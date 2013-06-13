@@ -51,12 +51,15 @@ for row_index in range(sheet.nrows):
         purchase_order_tuple_list.append((sheet.row_slice(row_index,0)[PURCHASE_ORDER_NUMBER_COL].value,sheet.row_slice(row_index,0)[VENDOR_NAME_COL].value,sheet.row_slice(row_index,0)[2],[]))
       # else the row is the seperate items for a PO
       else:
-        print "GOT HERE 2"
         purchase_order_tuple_list[purchase_order_count][3].append((sheet.row_slice(row_index,0)[0].value,sheet.row_slice(row_index,0)[1].value,sheet.row_slice(row_index,0)[2],sheet.row_slice(row_index,0)[3].value,sheet.row_slice(row_index,0)[4].value,sheet.row_slice(row_index,0)[5])) 
     elif "WAREHOUSE_ORDERS" == section:
       print "in warehouse section"
   else:
      section = state_changed
+
+for po_tuple in purchase_order_tuple_list:
+  print po_tuple[0]
+  print "item count = " + str(po_tuple[3])
 
 print "Completed for Project " + project_name + ", # " + str(project_number) + ", Store # " + str(store_number)
 print "Purchase order count: " + str(purchase_order_count)
