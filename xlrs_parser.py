@@ -43,7 +43,8 @@ def warehouse_print(warehouse_list):
 
 def retrieve_po_and_warehouse_lists(po_file_name):
   """ Parses a file with a given name (po_file_name) and returns a tuple with the PO list as the first element and the warehouse list as the second element """
- 
+
+  print "Retrieving PO and Warehouse orders and items lists" 
   book = open_workbook(po_file_name)
   sheet = book.sheet_by_index(0)
 
@@ -69,12 +70,12 @@ def retrieve_po_and_warehouse_lists(po_file_name):
   # iterate through each row of the spreadsheet
   current_po_item_count = 0
   for row_index in range(sheet.nrows):
-  #  print sheet.row_slice(row_index,0)
+    
     state = state_change(sheet.row_slice(row_index,0)[0].value)
     if "" != state:
       section = state
-    elif (not sheet.row_slice(row_index,0)[0].value is empty_cell.value):
     
+    elif (not sheet.row_slice(row_index,0)[0].value is empty_cell.value):
       if "START" == section:
         project_number = sheet.row_slice(row_index,0)[2].value
         project_name = sheet.row_slice(row_index,0)[4].value
@@ -110,3 +111,7 @@ def retrieve_po_and_warehouse_lists(po_file_name):
   print "Warehouse order count: " + str(warehouse_order_count)
 
   return purchase_order_tuple_list, warehouse_order_tuple_list
+
+def retrieve_proposed_orders_lists(po_file_name):
+  print "Retrieving proposed orders list from file: " + po_file_name + " ..."
+  # TODO add implementation
