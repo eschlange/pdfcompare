@@ -1,1 +1,4 @@
 This is a readme file.
+
+USAGE Example:
+python -c 'import xlrs_parser; xlrs_parser.retrieve_items_ordered_list("test_po_and_warehouse_orders.xls")'
