@@ -187,3 +187,4 @@ def retrieve_proposed_orders_lists(po_file_name):
   print "Completed retrieval of proposed orders for Project type [" + project_type + "], [# " + str(project_number) + "], Store #" + str(store_number)
   print "Proposed order count: " + str(proposed_order_count)
 
+  return proposed_order_tuple_list
