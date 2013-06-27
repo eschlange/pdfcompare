@@ -1,5 +1,6 @@
 from xlrd import open_workbook,cellname,empty_cell
 from datetime import datetime
+import Levenshtein
 
 def state_change(current_cell):
   """ determines the current section of the spreadsheet """
@@ -13,8 +14,11 @@ def state_change(current_cell):
   return state
 
 def po_item_print(po_item):
-  print "    SKU Description: " + item_details[0]
+  print "    PO #:         " + str(item_details[6])
+  print "    Company Name: " + item_details[7]
+  print "    Ship Date:    " + item_details[8].value
   print "    Design ID:       " + item_details[1]
+  print "    SKU Description: " + item_details[0]
   print "    CSI Code:        " + item_details[2].value
   print "    CSI Description: " + str(item_details[3])
   print "    QTY Ordered:     " + str(item_details[4])
@@ -24,15 +28,6 @@ def po_item_print(po_item):
 def po_item_list_print(po_item_list):
   for po_item in po_item_list:
     po_item_print(po_item)
-
-def po_print(po_list):
-  """ prints out a readable set of data for each purchase order and nested item """
-  for po_tuple in po_list:
-    print "PO #:         " + str(po_tuple[0])
-    print "Company Name: " + po_tuple[1]
-    print "Ship Date:    " + po_tuple[2].value
-    print
-    po_item_list_print(po_tuple[3])
 
 def proposed_order_item_print(item_details):
   print "    Design ID:         " + item_details[0]
@@ -92,11 +87,16 @@ def retrieve_po_and_warehouse_lists(po_file_name):
   purchase_order_tuple_list = []
   warehouse_order_tuple_list = []
 
-  # iterate through each row of the spreadsheet
-  current_po_item_count = 0
+  # Variables to hold current purchase order data
+  current_po_id = 0
+  current_vendor = ""
+  current_target_del_date = ""  
+
+  # Variables to hold current warehouse data
   current_warehouse_id = 0  
   current_warehouse_WHO = ""
-
+  
+  # iterate through each row of the spreadsheet
   for row_index in range(sheet.nrows):
     
     state = state_change(sheet.row_slice(row_index,0)[0].value)
@@ -115,11 +115,12 @@ def retrieve_po_and_warehouse_lists(po_file_name):
           # if purchase order list is empty
           if purchase_order_tuple_list:
             purchase_order_count += 1
-          purchase_order_tuple_list.append((sheet.row_slice(row_index,0)[PURCHASE_ORDER_NUMBER_COL].value,sheet.row_slice(row_index,0)[VENDOR_NAME_COL].value,sheet.row_slice(row_index,0)[2],[]))
-      
+          current_po_id = sheet.row_slice(row_index,0)[PURCHASE_ORDER_NUMBER_COL].value
+          current_vendor = sheet.row_slice(row_index,0)[0].value
+          current_target_del_date = sheet.row_slice(row_index,0)[2].value 
         # else the row is the seperate items for a PO
         else:
-          purchase_order_tuple_list[purchase_order_count][3].append((sheet.row_slice(row_index,0)[0].value,sheet.row_slice(row_index,0)[1].value,sheet.row_slice(row_index,0)[2],sheet.row_slice(row_index,0)[3].value,sheet.row_slice(row_index,0)[4].value,sheet.row_slice(row_index,0)[5])) 
+          purchase_order_tuple_list.append((sheet.row_slice(row_index,0)[0].value,sheet.row_slice(row_index,0)[1].value,sheet.row_slice(row_index,0)[2],sheet.row_slice(row_index,0)[3].value,sheet.row_slice(row_index,0)[4].value,sheet.row_slice(row_index,0)[5],current_po_id,current_vendor,current_target_del_date))
     
       elif "WAREHOUSE_ORDERS" == section:
         # if the row constitutes a new warehouse
@@ -175,10 +176,7 @@ def retrieve_proposed_orders_lists(po_file_name):
   COMMENTS_COL = 7
 
   proposed_order_tuple_list = []
-
-  # Iterate through each row of the spreadsheet
-  current_po_item_count = 0
-  
+ 
   # Pull general details for the proposed orders
   project_number = sheet.row_slice(0,0)[1].value
   project_type = sheet.row_slice(3,0)[1].value
@@ -215,17 +213,15 @@ def compare(po_and_warehouse_file,proposed_order_file):
   found_po_pair_tuple_list = []
   found_warehouse_tuple_list = []
   not_found_po_warehouse_item_list = []
+  found_map = {}
 
   for proposed_item_details in proposed_order_tuple_list:
     item_found = False
     # for each purchase order
-    for purchase_order in po_and_warehouse_tuple_list[0]:
-      for po_item in purchase_order[3]:
-        if proposed_item_details[0] == po_item[1].replace('.0',''):
-          found_po_pair_tuple_list.append((proposed_item_details,po_item))
-          item_found = True
-          break
-      if item_found:
+    for po_item in po_and_warehouse_tuple_list[0]:
+      if proposed_item_details[0] == po_item[1].replace('.0',''):
+        found_po_pair_tuple_list.append((proposed_item_details,po_item))
+        item_found = True
         break
     # for each warehouse item
     for warehouse_order in po_and_warehouse_tuple_list[1]:
@@ -237,8 +233,30 @@ def compare(po_and_warehouse_file,proposed_order_file):
         break
     if not item_found:
       not_found_po_warehouse_item_list.append(proposed_item_details)
+    else: 
+      found_map[str(proposed_item_details[0])]=True
 
   # proposed_order_print(not_found_po_warehouse_item_list)
+  for item in proposed_order_tuple_list:
+    if not found_map.get(str(item[0])):
+      print "~~~ Proposed Item description: " + item[2] + " ~~~"
+      print "Possible matches: "
+      for po_item in po_and_warehouse_tuple_list[0]:
+        if not found_map.get(str(po_item[1].replace('.0',''))):
+          try: 
+            if Levenshtein.ratio(po_item[0].lower().replace(" ", ""),item[2].lower().replace(" ", "")) > 0.4:
+              print po_item[0] + " ratio=(" + str(Levenshtein.ratio(po_item[0].lower().replace(" ", ""),item[2].lower().replace(" ", "")))+") | ",
+          except:
+            print "error"
+      # print all warehouse items ona single line
+      for w_item in po_and_warehouse_tuple_list[1]:
+        if not found_map.get(str(w_item[4].replace('.0',''))):
+          if Levenshtein.ratio(w_item[3].value.lower().replace(" ", ""),item[2].lower().replace(" ", "")) > 0.4:
+            print(w_item[3].value + "ratio=("+ str(Levenshtein.ratio(w_item[3].value.lower().replace(" ", ""),item[2].lower().replace(" ", ""))) + " | "),
+      print
+      print "***********************************************"
+      print
+    
   print "Found [" + str(len(found_po_pair_tuple_list)) + "] proposed orders that match with an item in the PO list."
   print "Found [" + str(len(found_warehouse_tuple_list)) + "] proposed orders that match with an item in the warehouse list."
   print "Found [" + str(len(not_found_po_warehouse_item_list)) + "] proposed orders that DO NOT have a design ID match in the PO and warehouse list."
