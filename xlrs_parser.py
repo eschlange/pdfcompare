@@ -40,6 +40,11 @@ def proposed_order_item_print(item_details):
   print "    Comments:          " + item_details[7]
   print
 
+def proposed_po_equality_check_print(proposed_item,po_item):
+  print " Proposed Design ID  :" + proposed_item[0] + '\t\t\t'      + " PO Design ID  :" + po_item[1]
+  print " Proposed Description:" + proposed_item[2] + '\t\t\t'      + " PO Description:" + po_item[0]
+  print " Proposed Quantity   :" + str(proposed_item[4]) + '\t\t\t' + " PO Quantity   :" + str(po_item[4])
+  print
 
 def proposed_order_print(proposed_order_list):
   """ prints out a readable set of data for each warehouse order and nested item """
@@ -202,8 +207,25 @@ def retrieve_proposed_orders_lists(po_file_name):
   print "Proposed order count: " + str(proposed_order_count)
   print "*******************************"
   print
-
   return proposed_order_tuple_list
+
+def compare_po_description(proposed_item,po_item):
+  ratio_to_return = 0
+  ratio_found = Levenshtein.ratio(po_item[0].lower().replace(" ", ""),proposed_item[2].lower().replace(" ", ""))
+  try:
+    if ratio_found > 0.4:
+      ratio_to_return = ratio_found
+  except:
+    print "error"
+  return ratio_to_return
+
+def compare_wh_description(proposed_item,wh_item):
+  ratio_to_return = 0
+  ratio_found = Levenshtein.ratio(wh_item[3].value.lower().replace(" ", ""),proposed_item[2].lower().replace(" ", ""))
+  if ratio_found > 0.4:
+    ratio_to_return = ratio_found
+  return ratio_to_return
+
 
 def compare(po_and_warehouse_file,proposed_order_file):
   print "***************************"
@@ -217,12 +239,18 @@ def compare(po_and_warehouse_file,proposed_order_file):
 
   for proposed_item_details in proposed_order_tuple_list:
     item_found = False
+    winning_item_tuple = None
+
     # for each purchase order
     for po_item in po_and_warehouse_tuple_list[0]:
       if proposed_item_details[0] == po_item[1].replace('.0',''):
         found_po_pair_tuple_list.append((proposed_item_details,po_item))
         item_found = True
         break
+      similarity_ratio = compare_po_description(proposed_item_details,po_item)
+      if similarity_ratio > 0.55 and (winning_item_tuple is None or winning_item_tuple[0] < similarity_ratio):
+        winning_item_tuple = similarity_ratio,proposed_item_details,po_item,"PO"
+
     # for each warehouse item
     for warehouse_order in po_and_warehouse_tuple_list[1]:
       if item_found:
@@ -231,32 +259,28 @@ def compare(po_and_warehouse_file,proposed_order_file):
         found_warehouse_tuple_list.append((proposed_item_details,warehouse_order))
         item_found = True
         break
+      similarity_ratio = compare_wh_description(proposed_item_details,warehouse_order)
+      if similarity_ratio > 0.55 and (winning_item_tuple is None or winning_item_tuple[0] < similarity_ratio):
+        winning_item_tuple = similarity_ratio,proposed_item_details,warehouse_order,"WH"
+
+    # if design id match didn't occur and found a valid description match
+    if not item_found and None is not winning_item_tuple:
+      if "PO" == winning_item_tuple[3]:
+         found_po_pair_tuple_list.append((winning_item_tuple[1],winning_item_tuple[2]))
+      else:
+         found_warehouse_tuple_list.append((winning_item_tuple[1],winning_item_tuple[2]))
+      item_found = True
+
     if not item_found:
       not_found_po_warehouse_item_list.append(proposed_item_details)
     else: 
       found_map[str(proposed_item_details[0])]=True
 
-  # proposed_order_print(not_found_po_warehouse_item_list)
-  for item in proposed_order_tuple_list:
-    if not found_map.get(str(item[0])):
-      print "~~~ Proposed Item description: " + item[2] + " ~~~"
-      print "Possible matches: "
-      for po_item in po_and_warehouse_tuple_list[0]:
-        if not found_map.get(str(po_item[1].replace('.0',''))):
-          try: 
-            if Levenshtein.ratio(po_item[0].lower().replace(" ", ""),item[2].lower().replace(" ", "")) > 0.4:
-              print po_item[0] + " ratio=(" + str(Levenshtein.ratio(po_item[0].lower().replace(" ", ""),item[2].lower().replace(" ", "")))+") | ",
-          except:
-            print "error"
-      # print all warehouse items ona single line
-      for w_item in po_and_warehouse_tuple_list[1]:
-        if not found_map.get(str(w_item[4].replace('.0',''))):
-          if Levenshtein.ratio(w_item[3].value.lower().replace(" ", ""),item[2].lower().replace(" ", "")) > 0.4:
-            print(w_item[3].value + "ratio=("+ str(Levenshtein.ratio(w_item[3].value.lower().replace(" ", ""),item[2].lower().replace(" ", ""))) + " | "),
-      print
-      print "***********************************************"
-      print
-    
+  # Show all PO matches that don't have the same quantity
+  for matched_po_tuple in found_po_pair_tuple_list:
+    if matched_po_tuple[0][4] != matched_po_tuple[1][4]:
+      proposed_po_equality_check_print(matched_po_tuple[0],matched_po_tuple[1])
+
   print "Found [" + str(len(found_po_pair_tuple_list)) + "] proposed orders that match with an item in the PO list."
   print "Found [" + str(len(found_warehouse_tuple_list)) + "] proposed orders that match with an item in the warehouse list."
   print "Found [" + str(len(not_found_po_warehouse_item_list)) + "] proposed orders that DO NOT have a design ID match in the PO and warehouse list."
